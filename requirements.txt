@@ -1,0 +1,9 @@
+# Requirements for Windscribe IP Changer
+# Python dependencies
+
+# Core dependencies
+# No external packages required - uses only standard library
+
+# Optional: For enhanced features
+# requests>=2.31.0  # For HTTP IP checking (optional)
+# psutil>=5.9.0  # For system monitoring (optional)

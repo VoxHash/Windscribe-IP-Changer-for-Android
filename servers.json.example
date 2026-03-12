@@ -1,0 +1,30 @@
+[
+  {
+    "name": "US East",
+    "location": "us-east"
+  },
+  {
+    "name": "US West", 
+    "location": "us-west"
+  },
+  {
+    "name": "EU Central",
+    "location": "eu-central"
+  },
+  {
+    "name": "EU West",
+    "location": "eu-west"
+  },
+  {
+    "name": "Asia Pacific",
+    "location": "ap-southeast"
+  },
+  {
+    "name": "Japan",
+    "location": "jp"
+  },
+  {
+    "name": "Singapore",
+    "location": "sg"
+  }
+]
