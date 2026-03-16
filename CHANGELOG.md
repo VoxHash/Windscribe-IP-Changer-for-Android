@@ -13,6 +13,8 @@
 - **Smart screen size detection** - Automatically adapts to different device screen sizes
 - **UI automation helper methods** - `_tap()`, `_swipe()`, `_get_screen_size()`, `_get_ui_hierarchy()`
 - **Complete automated connection flow** - Opens app, disconnects, selects location, connects automatically
+- **Taps and text input automation** - Uses `adb shell input tap` and `adb shell input text` to interact with app UI
+- **In-app IP changes** - Changes IP from inside the Windscribe app on each device (not external routing)
 - **Location name mapping** - Comprehensive mapping of location codes to display names
 - **Connection verification** - Verifies VPN connection after automation
 - Enhanced device detection and connection validation

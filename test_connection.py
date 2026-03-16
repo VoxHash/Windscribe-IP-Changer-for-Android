@@ -67,9 +67,11 @@ def test_connection():
         if package:
             print("✓ UI automation methods available:")
             print("  - Screen size detection: ✓")
-            print("  - Tap simulation: ✓")
+            print("  - Tap simulation (adb shell input tap): ✓")
+            print("  - Text input (adb shell input text): ✓")
             print("  - Swipe simulation: ✓")
             print("  - UI hierarchy detection: ✓")
+            print("  - In-app automation: Changes IP from inside Windscribe app ✓")
         else:
             print("  UI automation: Not needed (CLI mode)")
         

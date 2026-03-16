@@ -3,7 +3,10 @@
 ## Q2 2026
 - ✅ **Enhanced UI automation for Windscribe Android app** (Completed)
 - ✅ **Full automation without GUI requirement** (Completed)
+- ✅ **Taps and text input automation** (Completed - uses `adb shell input tap/text`)
+- ✅ **In-app IP changes** (Completed - changes from inside app on each device)
 - ✅ **Smart screen size detection and adaptive UI interaction** (Completed)
+- ✅ **Multi-device management** (Completed - simultaneous connections with different locations per device)
 - Support for more VPN providers
 - Configuration file validation
 - Better error messages and recovery

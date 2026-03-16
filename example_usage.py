@@ -76,21 +76,108 @@ def example_ui_automation():
             screen_width, screen_height = changer._get_screen_size()
             print(f"Screen size: {screen_width}x{screen_height}")
             print("UI automation is fully enabled - no manual interaction needed!")
-            print("The script will automatically:")
-            print("  - Open Windscribe app")
-            print("  - Navigate to location selection")
-            print("  - Search and select location")
-            print("  - Connect automatically")
+            print("The script changes IP from INSIDE the app using:")
+            print("  - Taps (adb shell input tap) to navigate UI")
+            print("  - Text input (adb shell input text) to search locations")
+            print("  - Automatic connection flow:")
+            print("    1. Open Windscribe app")
+            print("    2. Navigate to location selection")
+            print("    3. Search and select location")
+            print("    4. Connect automatically")
+            print("  - All operations happen from inside the app on the device")
         else:
             print("Using CLI mode (no UI automation needed)")
     else:
         print("No device connected!")
 
+def example_specific_device():
+    """Example: Target a specific device by ID"""
+    print("\n=== Example 6: Specific Device ===")
+    # List available devices first
+    changer = WindscribeIPChanger()
+    devices = changer.list_devices()
+    
+    if devices:
+        print("Available devices:")
+        for device in devices:
+            print(f"  - {device['device_id']} ({device['status']})")
+        
+        # Use first device as example
+        device_id = devices[0]['device_id']
+        print(f"\nConnecting to device: {device_id}")
+        
+        device_changer = WindscribeIPChanger(device_id=device_id)
+        if device_changer.check_adb_connection():
+            device_changer.change_ip(wait_time=5)
+        else:
+            print(f"Device {device_id} not available")
+    else:
+        print("No devices connected!")
+
+def example_multi_device():
+    """Example: Manage multiple devices simultaneously"""
+    print("\n=== Example 7: Multi-Device Management ===")
+    
+    # List available devices
+    changer = WindscribeIPChanger()
+    devices = changer.list_devices()
+    
+    if len(devices) < 2:
+        print("Need at least 2 devices for this example")
+        print(f"Currently connected: {len(devices)} device(s)")
+        return
+    
+    # Create multi-device configuration
+    device_configs = [
+        {"device_id": devices[0]["device_id"], "location": "us-east"},
+        {"device_id": devices[1]["device_id"], "location": "eu-west"},
+    ]
+    
+    print(f"Connecting {len(device_configs)} devices to different locations:")
+    for config in device_configs:
+        print(f"  - {config['device_id']} → {config['location']}")
+    
+    # Manage multiple devices
+    results = manage_multiple_devices(changer.adb_path, device_configs)
+    
+    print("\nResults:")
+    for device_id, result in results.items():
+        status = "✓ Success" if result.get("success") else "✗ Failed"
+        print(f"  {device_id}: {status}")
+        if result.get("ip"):
+            print(f"    IP: {result['ip']}")
+
+def example_list_devices():
+    """Example: List all connected devices"""
+    print("\n=== Example 8: List Devices ===")
+    changer = WindscribeIPChanger()
+    devices = changer.list_devices()
+    
+    if devices:
+        print(f"Found {len(devices)} connected device(s):")
+        for device in devices:
+            print(f"  Device ID: {device['device_id']}")
+            print(f"  Status: {device['status']}")
+            
+            # Check Windscribe on each device
+            device_changer = WindscribeIPChanger(device_id=device['device_id'])
+            if device_changer.check_windscribe_installed():
+                package = device_changer.get_windscribe_package_name()
+                print(f"  Windscribe: Installed ({package or 'CLI'})")
+            else:
+                print(f"  Windscribe: Not installed")
+            print()
+    else:
+        print("No devices connected via ADB")
+
 if __name__ == "__main__":
     # Run examples
+    example_list_devices()
     example_status_check()
     example_ui_automation()
-    example_single_change()
+    example_specific_device()
     # Uncomment to run other examples:
+    # example_single_change()
     # example_rotation()
     # example_custom_servers()
+    # example_multi_device()  # Requires 2+ devices

@@ -163,7 +163,14 @@ The script works by:
 6. Connecting to a random Windscribe server using ADB input commands
 7. Verifying the new IP address
 
-**UI Automation:** The script uses ADB shell commands (`input tap`, `input text`, etc.) to fully automate the Windscribe Android app without requiring any manual GUI interaction. It adapts to different screen sizes and handles UI variations automatically.
+**UI Automation:** The script uses ADB shell commands (`input tap`, `input text`, etc.) to fully automate the Windscribe Android app **from inside the app on each device**. It:
+- **Makes taps** at specific screen coordinates to navigate the UI
+- **Sends text input** to search for and select server locations
+- **Changes IP from within the app** on each device independently
+- Adapts to different screen sizes and handles UI variations automatically
+- Requires **no manual GUI interaction** - fully automated
+
+**Multi-Device Support:** Each device can have a different VPN connection simultaneously. The script manages connections **from inside the Windscribe app on each device**, allowing independent IP addresses per device.
 
 See [docs/architecture.md](docs/architecture.md) for details.
 
