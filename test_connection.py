@@ -16,13 +16,24 @@ def test_connection():
         print("✗ ADB not found!")
         return False
     
-    if changer.check_adb_connection():
-        print("✓ ADB connected to device")
-        device = changer.get_connected_device()
-        print(f"  Device: {device or 'Unknown'}")
+    # List all devices
+    devices = changer.list_devices()
+    if devices:
+        print(f"✓ Found {len(devices)} connected device(s):")
+        for device in devices:
+            print(f"  - {device['device_id']} ({device['status']})")
     else:
-        print("✗ No device connected via ADB")
+        print("✗ No devices connected via ADB")
         print("  Please connect a device or start an emulator")
+        return False
+    
+    # Test with first device
+    if changer.check_adb_connection():
+        print("✓ ADB connection verified")
+        device = changer.get_connected_device()
+        print(f"  Using device: {device or 'Unknown'}")
+    else:
+        print("✗ ADB connection check failed")
         return False
     
     print("\n=== Testing Screen Detection ===")
@@ -62,6 +73,15 @@ def test_connection():
         else:
             print("  UI automation: Not needed (CLI mode)")
         
+        print("\n=== Testing Multi-Device Support ===")
+        all_devices = changer.list_devices()
+        if len(all_devices) > 1:
+            print(f"✓ Multiple devices detected ({len(all_devices)} devices)")
+            print("  Multi-device management is available!")
+            print("  Use --multi-device config.json to manage all devices simultaneously")
+        else:
+            print(f"  Single device mode (connect more devices for multi-device support)")
+        
         return True
     else:
         print("✗ Windscribe not found")
@@ -73,5 +93,6 @@ if __name__ == "__main__":
     if success:
         print("\n✓ All checks passed! Ready to use.")
         print("  The script can now fully automate Windscribe connections via UI automation.")
+        print("  Multi-device support is enabled - manage multiple devices simultaneously!")
     else:
         print("\n✗ Some checks failed. Please fix issues above.")

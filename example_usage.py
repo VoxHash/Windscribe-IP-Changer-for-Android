@@ -4,8 +4,9 @@ Example usage of Windscribe IP Changer
 Demonstrates various ways to use the IP changer script
 """
 
-from windscribe_ip_changer import WindscribeIPChanger
+from windscribe_ip_changer import WindscribeIPChanger, manage_multiple_devices
 import time
+import json
 
 def example_single_change():
     """Example: Change IP once"""

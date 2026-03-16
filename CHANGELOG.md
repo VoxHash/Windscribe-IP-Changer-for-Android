@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 ### Added
+- **Multi-device support** - Manage multiple Android devices simultaneously with different VPN connections
+- **Device selection** - `--device` argument to target specific device by ID
+- **Device listing** - `--list-devices` argument to show all connected devices
+- **Multi-device management** - `--multi-device` argument with JSON config for simultaneous connections
+- **`manage_multiple_devices()` function** - Connect multiple devices to different locations at once
+- **`list_devices()` method** - List all connected Android devices with status
+- **`_build_adb_command()` helper** - Device-specific ADB command builder
 - **Full UI automation for Windscribe Android app** - No GUI interaction required
 - **Smart screen size detection** - Automatically adapts to different device screen sizes
 - **UI automation helper methods** - `_tap()`, `_swipe()`, `_get_screen_size()`, `_get_ui_hierarchy()`
@@ -13,8 +20,11 @@
 - Support for both Windscribe CLI and Android app detection
 - Better error handling and user feedback
 - Improved package detection (supports `com.windscribe.vpn` and variants)
+- Example multi-device configuration file (`multi_device_config.json.example`)
 
 ### Changed
+- **All ADB commands now support device selection** - Uses `-s DEVICE_ID` when device is specified
+- **Device auto-selection** - Automatically selects first available device if none specified (backward compatible)
 - **Removed GUI requirement** - Fully automated via ADB shell commands
 - **Enhanced disconnect function** - Now uses UI automation with multiple button position attempts
 - Improved device name extraction from ADB output
