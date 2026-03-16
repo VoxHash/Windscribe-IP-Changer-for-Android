@@ -1,7 +1,5 @@
 # GitHub Topics
 
-Suggested topics for this repository:
-
 ## Primary Topics
 - `android`
 - `adb`
