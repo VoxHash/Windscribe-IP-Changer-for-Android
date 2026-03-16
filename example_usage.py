@@ -63,9 +63,32 @@ def example_status_check():
     else:
         print("No device connected!")
 
+def example_ui_automation():
+    """Example: Demonstrate UI automation capabilities"""
+    print("\n=== Example 5: UI Automation Demo ===")
+    changer = WindscribeIPChanger()
+    
+    if changer.check_adb_connection():
+        package = changer.get_windscribe_package_name()
+        if package:
+            print(f"Windscribe app detected: {package}")
+            screen_width, screen_height = changer._get_screen_size()
+            print(f"Screen size: {screen_width}x{screen_height}")
+            print("UI automation is fully enabled - no manual interaction needed!")
+            print("The script will automatically:")
+            print("  - Open Windscribe app")
+            print("  - Navigate to location selection")
+            print("  - Search and select location")
+            print("  - Connect automatically")
+        else:
+            print("Using CLI mode (no UI automation needed)")
+    else:
+        print("No device connected!")
+
 if __name__ == "__main__":
     # Run examples
     example_status_check()
+    example_ui_automation()
     example_single_change()
     # Uncomment to run other examples:
     # example_rotation()

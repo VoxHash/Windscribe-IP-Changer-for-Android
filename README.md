@@ -8,12 +8,14 @@
 ## ✨ Features
 
 - ✅ Connects to Android devices/emulators via ADB
+- ✅ **Fully automated UI automation** - No GUI interaction required
 - ✅ Automatically changes IP by connecting to random Windscribe servers
 - ✅ Supports both physical devices and Android emulators
 - ✅ Configurable server locations
 - ✅ Automatic IP rotation mode
 - ✅ Current IP and status checking
 - ✅ Works with Windscribe CLI or Android app
+- ✅ Smart screen size detection and adaptive UI interaction
 
 ## 🧭 Table of Contents
 
@@ -117,9 +119,12 @@ The script works by:
 1. Connecting to Android device/emulator via ADB
 2. Checking if Windscribe is installed (CLI or app)
 3. Getting current IP and Windscribe status
-4. Disconnecting from current server (if connected)
-5. Connecting to a random Windscribe server
-6. Verifying the new IP address
+4. Disconnecting from current server (if connected) via UI automation
+5. **Automatically navigating Windscribe app UI** to select location
+6. Connecting to a random Windscribe server using ADB input commands
+7. Verifying the new IP address
+
+**UI Automation:** The script uses ADB shell commands (`input tap`, `input text`, etc.) to fully automate the Windscribe Android app without requiring any manual GUI interaction. It adapts to different screen sizes and handles UI variations automatically.
 
 See [docs/architecture.md](docs/architecture.md) for details.
 
@@ -145,4 +150,4 @@ For issues, questions, or contributions, see [SUPPORT.md](SUPPORT.md).
 
 ---
 
-**Note:** This script requires Windscribe to be installed and configured on your Android device or emulator. It uses ADB shell commands to interact with Windscribe, so proper ADB setup is essential.
+**Note:** This script requires Windscribe to be installed and configured on your Android device or emulator. It uses ADB shell commands to interact with Windscribe via **fully automated UI automation** - no manual GUI interaction is required. Proper ADB setup is essential.
