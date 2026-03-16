@@ -11,6 +11,7 @@
 - ✅ **Fully automated UI automation** - No GUI interaction required
 - ✅ Automatically changes IP by connecting to random Windscribe servers
 - ✅ Supports both physical devices and Android emulators
+- ✅ **Multi-device support** - Manage multiple devices simultaneously with different connections
 - ✅ Configurable server locations
 - ✅ Automatic IP rotation mode
 - ✅ Current IP and status checking
@@ -83,11 +84,46 @@ python3 windscribe_ip_changer.py --rotate --count 10 --interval 300
 python3 windscribe_ip_changer.py --servers servers.json
 ```
 
+### Single Device with Device ID
+
+```bash
+python3 windscribe_ip_changer.py --device emulator-5554
+```
+
+### List Connected Devices
+
+```bash
+python3 windscribe_ip_changer.py --list-devices
+```
+
+### Multi-Device Management
+
+Connect multiple devices to different locations simultaneously:
+
+```bash
+python3 windscribe_ip_changer.py --multi-device multi_device_config.json
+```
+
+Example `multi_device_config.json`:
+```json
+[
+  {
+    "device_id": "emulator-5554",
+    "location": "us-east"
+  },
+  {
+    "device_id": "emulator-5556",
+    "location": "eu-west"
+  }
+]
+```
+
 ### All Options
 
 ```bash
 python3 windscribe_ip_changer.py \
   --adb-path /custom/path/to/adb \
+  --device emulator-5554 \
   --servers servers.json \
   --rotate \
   --count 20 \
@@ -100,6 +136,9 @@ python3 windscribe_ip_changer.py \
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--adb-path` | Path to ADB executable | Auto-detected |
+| `--device` | Specific device ID to target | Auto-select first device |
+| `--list-devices` | List all connected devices and exit | - |
+| `--multi-device` | Path to JSON file with multi-device config | - |
 | `--servers` | Path to JSON file with server list | Uses defaults |
 | `--wait` | Seconds to wait after connecting | 5 |
 | `--rotate` | Enable automatic IP rotation | False |

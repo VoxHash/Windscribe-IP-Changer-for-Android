@@ -66,14 +66,31 @@ LOCATION_NAME_MAP = {
 class WindscribeIPChanger:
     """Manages Windscribe VPN connections on Android via ADB."""
     
-    def __init__(self, adb_path: Optional[str] = None):
+    def __init__(self, adb_path: Optional[str] = None, device_id: Optional[str] = None):
         """Initialize the IP changer.
         
         Args:
             adb_path: Path to ADB executable (auto-detected if in PATH)
+            device_id: Specific device ID to target (None = auto-select first device)
         """
         self.adb_path = adb_path or self._find_adb()
+        self.device_id = device_id
         self.current_server = None
+    
+    def _build_adb_command(self, command: List[str]) -> List[str]:
+        """Build ADB command with device selection if specified.
+        
+        Args:
+            command: List of command parts (e.g., ["shell", "pm", "list", "packages"])
+            
+        Returns:
+            Complete ADB command with device selection
+        """
+        cmd = [self.adb_path]
+        if self.device_id:
+            cmd.extend(["-s", self.device_id])
+        cmd.extend(command)
+        return cmd
         
     def _find_adb(self) -> Optional[str]:
         """Find ADB executable in PATH."""
@@ -99,52 +116,79 @@ class WindscribeIPChanger:
             pass
         return None
     
+    def list_devices(self) -> List[dict]:
+        """List all connected Android devices.
+        
+        Returns:
+            List of dictionaries with device_id and status
+        """
+        if not self.adb_path:
+            return []
+        
+        devices = []
+        try:
+            result = subprocess.run(
+                [self.adb_path, "devices"],
+                capture_output=True,
+                text=True,
+                stderr=subprocess.PIPE
+            )
+            if result.returncode == 0:
+                lines = result.stdout.strip().split("\n")
+                for line in lines[1:]:  # Skip header
+                    if line.strip():
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            device_id = parts[0]
+                            status = parts[1]
+                            if status.lower() in ["device", "emulator"]:
+                                devices.append({
+                                    "device_id": device_id,
+                                    "status": status
+                                })
+        except Exception as e:
+            print(f"Error listing devices: {e}")
+        return devices
+    
     def check_adb_connection(self) -> bool:
         """Check if ADB is connected to a device."""
         if not self.adb_path:
             print("Error: ADB not found. Please install ADB or specify path with --adb-path")
             return False
         
+        # If device_id is specified, check that specific device
+        if self.device_id:
+            try:
+                result = subprocess.run(
+                    [self.adb_path, "-s", self.device_id, "get-state"],
+                    capture_output=True,
+                    text=True,
+                    stderr=subprocess.PIPE
+                )
+                return result.returncode == 0 and "device" in result.stdout.lower()
+            except:
+                return False
+        
+        # Otherwise check if any device is available
         try:
-            result = subprocess.run(
-                [self.adb_path, "devices"],
-                capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
-            )
-            if result.returncode == 0:
-                output = result.stdout.strip()
-                # Check if any device is listed
-                lines = output.split("\n")
-                for line in lines[1:]:  # Skip header
-                    if "device" in line.lower() or "emulator" in line.lower():
-                        return True
-            return False
+            devices = self.list_devices()
+            return len(devices) > 0
         except Exception as e:
             print(f"Error checking ADB connection: {e}")
             return False
     
     def get_connected_device(self) -> Optional[str]:
-        """Get the name of the connected device."""
+        """Get the name/ID of the connected device."""
+        # If device_id is specified, return it
+        if self.device_id:
+            return self.device_id
+        
+        # Otherwise, get first available device
         try:
-            result = subprocess.run(
-                [self.adb_path, "devices"],
-                capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
-            )
-            if result.returncode == 0:
-                lines = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
-                for line in lines:
-                    # Skip header line
-                    if "list of devices" in line.lower():
-                        continue
-                    if "device" in line.lower() or "emulator" in line.lower():
-                        # Extract device ID (format: "device_id    device" or "emulator-5554    device")
-                        parts = line.split()
-                        if len(parts) >= 1:
-                            return parts[0]  # Return device ID (first part)
-                return None
+            devices = self.list_devices()
+            if devices:
+                return devices[0]["device_id"]
+            return None
         except Exception as e:
             print(f"Error getting device name: {e}")
             return None
@@ -154,7 +198,7 @@ class WindscribeIPChanger:
         # Check for CLI first
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "which", "windscribe"],
+                self._build_adb_command(["shell", "which", "windscribe"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -167,7 +211,7 @@ class WindscribeIPChanger:
         # Check for Android app package
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "pm", "list", "packages"],
+                self._build_adb_command(["shell", "pm", "list", "packages"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -186,7 +230,7 @@ class WindscribeIPChanger:
         
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "pm", "list", "packages"],
+                self._build_adb_command(["shell", "pm", "list", "packages"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -210,7 +254,7 @@ class WindscribeIPChanger:
         """Get device screen size."""
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "wm", "size"],
+                self._build_adb_command(["shell", "wm", "size"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -230,7 +274,7 @@ class WindscribeIPChanger:
         """Tap at coordinates."""
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "input", "tap", str(x), str(y)],
+                self._build_adb_command(["shell", "input", "tap", str(x), str(y)]),
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -243,7 +287,7 @@ class WindscribeIPChanger:
         """Swipe from (x1, y1) to (x2, y2)."""
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2), str(duration)],
+                self._build_adb_command(["shell", "input", "swipe", str(x1), str(y1), str(x2), str(y2), str(duration)]),
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -256,7 +300,7 @@ class WindscribeIPChanger:
         """Get UI hierarchy dump for element detection."""
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "uiautomator", "dump", "/dev/tty"],
+                self._build_adb_command(["shell", "uiautomator", "dump", "/dev/tty"]),
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -272,7 +316,7 @@ class WindscribeIPChanger:
         # Try CLI first
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "windscribe", "status"],
+                self._build_adb_command(["shell", "windscribe", "status"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -285,7 +329,7 @@ class WindscribeIPChanger:
         # Check VPN status via Android system
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "dumpsys", "vpn"],
+                self._build_adb_command(["shell", "dumpsys", "vpn"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -308,7 +352,7 @@ class WindscribeIPChanger:
         # Try CLI first
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "windscribe", "disconnect"],
+                self._build_adb_command(["shell", "windscribe", "disconnect"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE,
@@ -326,7 +370,7 @@ class WindscribeIPChanger:
         try:
             # Disconnect VPN via settings
             result = subprocess.run(
-                [self.adb_path, "shell", "svc", "vpn", "disconnect"],
+                self._build_adb_command(["shell", "svc", "vpn", "disconnect"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE,
@@ -347,7 +391,7 @@ class WindscribeIPChanger:
                 
                 # Open Windscribe app
                 subprocess.run(
-                    [self.adb_path, "shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"],
+                    self._build_adb_command(["shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"]),
                     capture_output=True,
                     timeout=5
                 )
@@ -372,7 +416,7 @@ class WindscribeIPChanger:
                 
                 # Fallback: press back to close connection screen
                 subprocess.run(
-                    [self.adb_path, "shell", "input", "keyevent", "KEYCODE_BACK"],
+                    self._build_adb_command(["shell", "input", "keyevent", "KEYCODE_BACK"]),
                     capture_output=True
                 )
                 time.sleep(1)
@@ -394,7 +438,7 @@ class WindscribeIPChanger:
         # Try CLI first (if available)
         try:
             result = subprocess.run(
-                [self.adb_path, "shell", "windscribe", "connect", location],
+                self._build_adb_command(["shell", "windscribe", "connect", location]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE,
@@ -425,7 +469,7 @@ class WindscribeIPChanger:
             # Step 1: Open Windscribe app
             print(f"Opening Windscribe app ({package})...")
             subprocess.run(
-                [self.adb_path, "shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"],
+                self._build_adb_command(["shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1"]),
                 capture_output=True,
                 timeout=5
             )
@@ -465,7 +509,7 @@ class WindscribeIPChanger:
                 time.sleep(0.5)
                 # Clear any existing text
                 subprocess.run(
-                    [self.adb_path, "shell", "input", "keyevent", "KEYCODE_CTRL_A"],
+                    self._build_adb_command(["shell", "input", "keyevent", "KEYCODE_CTRL_A"]),
                     capture_output=True,
                     timeout=2
                 )
@@ -475,7 +519,7 @@ class WindscribeIPChanger:
                 # Escape spaces for ADB input text command
                 location_text = location_display.replace(" ", "\\ ")
                 subprocess.run(
-                    [self.adb_path, "shell", "input", "text", location_text],
+                    self._build_adb_command(["shell", "input", "text", location_text]),
                     capture_output=True,
                     timeout=3
                 )
@@ -543,7 +587,7 @@ class WindscribeIPChanger:
         try:
             # Check VPN status via dumpsys
             result = subprocess.run(
-                [self.adb_path, "shell", "dumpsys", "vpn"],
+                self._build_adb_command(["shell", "dumpsys", "vpn"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE,
@@ -565,7 +609,7 @@ class WindscribeIPChanger:
             # Method 1: Get public IP via curl (if available)
             try:
                 result = subprocess.run(
-                    [self.adb_path, "shell", "curl", "-s", "https://api.ipify.org"],
+                    self._build_adb_command(["shell", "curl", "-s", "https://api.ipify.org"]),
                     capture_output=True,
                     text=True,
                     stderr=subprocess.PIPE,
@@ -580,7 +624,7 @@ class WindscribeIPChanger:
             
             # Method 2: Via network interface
             result = subprocess.run(
-                [self.adb_path, "shell", "ip", "addr", "show"],
+                self._build_adb_command(["shell", "ip", "addr", "show"]),
                 capture_output=True,
                 text=True,
                 stderr=subprocess.PIPE
@@ -705,6 +749,69 @@ class WindscribeIPChanger:
                 time.sleep(interval)
 
 
+def manage_multiple_devices(
+    adb_path: Optional[str],
+    device_configs: List[dict],
+    servers: Optional[List[dict]] = None
+) -> dict:
+    """Manage multiple devices with different connections simultaneously.
+    
+    Args:
+        adb_path: Path to ADB executable
+        device_configs: List of dicts with 'device_id' and 'location' keys
+        servers: List of server dictionaries (if None, uses defaults)
+    
+    Returns:
+        Dictionary with device_id as key and success status as value
+    """
+    results = {}
+    changers = []
+    
+    # Initialize changers for each device
+    for config in device_configs:
+        device_id = config.get("device_id")
+        changer = WindscribeIPChanger(adb_path=adb_path, device_id=device_id)
+        changers.append({
+            "changer": changer,
+            "device_id": device_id,
+            "location": config.get("location")
+        })
+    
+    # Connect each device to its specified location
+    for changer_info in changers:
+        device_id = changer_info["device_id"]
+        location = changer_info["location"]
+        changer = changer_info["changer"]
+        
+        print(f"\n{'='*60}")
+        print(f"Device: {device_id}")
+        print(f"Target Location: {location}")
+        print(f"{'='*60}")
+        
+        try:
+            if changer.check_adb_connection():
+                success = changer.connect_windscribe(location)
+                results[device_id] = {
+                    "success": success,
+                    "location": location,
+                    "ip": changer.get_current_ip() if success else None
+                }
+            else:
+                print(f"Error: Device {device_id} not connected")
+                results[device_id] = {
+                    "success": False,
+                    "error": "Device not connected"
+                }
+        except Exception as e:
+            print(f"Error managing device {device_id}: {e}")
+            results[device_id] = {
+                "success": False,
+                "error": str(e)
+            }
+    
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Change Windscribe IP on Android via ADB",
@@ -715,6 +822,23 @@ def main():
         type=str,
         default=None,
         help="Path to ADB executable (auto-detected if not specified)"
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="Specific device ID to target (use --list-devices to see available devices)"
+    )
+    parser.add_argument(
+        "--list-devices",
+        action="store_true",
+        help="List all connected Android devices and exit"
+    )
+    parser.add_argument(
+        "--multi-device",
+        type=str,
+        default=None,
+        help="Path to JSON file with multi-device configuration: [{\"device_id\": \"...\", \"location\": \"...\"}]"
     )
     parser.add_argument(
         "--servers",
@@ -748,6 +872,51 @@ def main():
     
     args = parser.parse_args()
     
+    # Find ADB path first
+    adb_path = args.adb_path
+    if not adb_path:
+        # Try to find ADB
+        common_paths = [
+            "/usr/bin/adb",
+            "/usr/local/bin/adb",
+            os.path.join(os.path.expanduser("~"), "Android/Sdk/platform-tools/adb"),
+        ]
+        for path in common_paths:
+            if os.path.isfile(path) and os.access(path, os.X_OK):
+                adb_path = path
+                break
+        if not adb_path:
+            try:
+                result = subprocess.run(
+                    ["which", "adb"],
+                    capture_output=True,
+                    text=True,
+                    stderr=subprocess.PIPE
+                )
+                if result.returncode == 0 and result.stdout:
+                    adb_path = result.stdout.strip()
+            except:
+                pass
+    
+    if not adb_path:
+        print("Error: ADB not found. Please install ADB or specify path with --adb-path")
+        sys.exit(1)
+    
+    # List devices if requested
+    if args.list_devices:
+        temp_changer = WindscribeIPChanger(adb_path=adb_path)
+        devices = temp_changer.list_devices()
+        if devices:
+            print("Connected Android devices:")
+            print(f"{'Device ID':<30} {'Status':<15}")
+            print("-" * 50)
+            for device in devices:
+                print(f"{device['device_id']:<30} {device['status']:<15}")
+        else:
+            print("No devices connected via ADB")
+            print("Connect a device or start an emulator, then run 'adb devices' to verify")
+        return
+    
     # Load custom servers if provided
     servers = None
     if args.servers:
@@ -758,13 +927,37 @@ def main():
             print(f"Error loading servers file: {e}")
             return
     
-    # Initialize IP changer
-    changer = WindscribeIPChanger(adb_path=args.adb_path)
+    # Multi-device mode
+    if args.multi_device:
+        try:
+            with open(args.multi_device, "r") as f:
+                device_configs = json.load(f)
+            if not isinstance(device_configs, list):
+                print("Error: Multi-device config must be a JSON array")
+                sys.exit(1)
+            
+            print(f"Managing {len(device_configs)} device(s) simultaneously...")
+            results = manage_multiple_devices(adb_path, device_configs, servers)
+            
+            print(f"\n{'='*60}")
+            print("Multi-Device Results Summary")
+            print(f"{'='*60}")
+            for device_id, result in results.items():
+                status = "✓ Success" if result.get("success") else "✗ Failed"
+                print(f"{device_id}: {status}")
+                if result.get("location"):
+                    print(f"  Location: {result['location']}")
+                if result.get("ip"):
+                    print(f"  IP: {result['ip']}")
+                if result.get("error"):
+                    print(f"  Error: {result['error']}")
+            return
+        except Exception as e:
+            print(f"Error loading multi-device config: {e}")
+            sys.exit(1)
     
-    # Validate ADB path
-    if not changer.adb_path:
-        print("Error: ADB not found. Please install ADB or specify path with --adb-path")
-        sys.exit(1)
+    # Single device mode
+    changer = WindscribeIPChanger(adb_path=adb_path, device_id=args.device)
     
     if args.rotate:
         # Automatic rotation mode

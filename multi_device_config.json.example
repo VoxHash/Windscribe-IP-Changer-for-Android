@@ -1,0 +1,14 @@
+[
+  {
+    "device_id": "emulator-5554",
+    "location": "us-east"
+  },
+  {
+    "device_id": "emulator-5556",
+    "location": "eu-west"
+  },
+  {
+    "device_id": "RZ8R123456",
+    "location": "jp"
+  }
+]
