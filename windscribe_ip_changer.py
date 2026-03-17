@@ -86,6 +86,8 @@ class WindscribeIPChanger:
         Returns:
             Complete ADB command with device selection
         """
+        if not self.adb_path:
+            raise ValueError("ADB path not set. Cannot build ADB command.")
         cmd = [self.adb_path]
         if self.device_id:
             cmd.extend(["-s", self.device_id])
@@ -107,8 +109,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 ["which", "adb"],
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0 and result.stdout:
                 return result.stdout.strip()
@@ -130,22 +131,25 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 [self.adb_path, "devices"],
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 lines = result.stdout.strip().split("\n")
                 for line in lines[1:]:  # Skip header
                     if line.strip():
                         parts = line.split()
-                        if len(parts) >= 2:
-                            device_id = parts[0]
-                            status = parts[1]
-                            if status.lower() in ["device", "emulator"]:
-                                devices.append({
-                                    "device_id": device_id,
-                                    "status": status
-                                })
+                if len(parts) >= 2:
+                    device_id = parts[0]
+                    status = parts[1]
+                    if status.lower() in ["device", "emulator"]:
+                        devices.append({
+                            "device_id": device_id,
+                            "status": status
+                        })
+                    elif status.lower() == "unauthorized":
+                        # Device is connected but not authorized
+                        print(f"⚠ Device {device_id} is connected but unauthorized.")
+                        print("   Please accept the USB debugging prompt on your device.")
         except Exception as e:
             print(f"Error listing devices: {e}")
         return devices
@@ -162,8 +166,7 @@ class WindscribeIPChanger:
                 result = subprocess.run(
                     [self.adb_path, "-s", self.device_id, "get-state"],
                     capture_output=True,
-                    text=True,
-                    stderr=subprocess.PIPE
+                    text=True
                 )
                 return result.returncode == 0 and "device" in result.stdout.lower()
             except:
@@ -200,8 +203,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "which", "windscribe"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 return True
@@ -213,8 +215,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "pm", "list", "packages"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0 and "windscribe" in result.stdout.lower():
                 return True
@@ -232,8 +233,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "pm", "list", "packages"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 installed_packages = result.stdout.lower()
@@ -256,8 +256,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "wm", "size"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 # Format: "Physical size: 1080x1920" or "Override size: 1080x1920"
@@ -318,8 +317,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "windscribe", "status"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 return result.stdout.strip()
@@ -331,8 +329,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "dumpsys", "vpn"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 output = result.stdout.strip()
@@ -355,7 +352,6 @@ class WindscribeIPChanger:
                 self._build_adb_command(["shell", "windscribe", "disconnect"]),
                 capture_output=True,
                 text=True,
-                stderr=subprocess.PIPE,
                 timeout=30
             )
             if result.returncode == 0:
@@ -373,7 +369,6 @@ class WindscribeIPChanger:
                 self._build_adb_command(["shell", "svc", "vpn", "disconnect"]),
                 capture_output=True,
                 text=True,
-                stderr=subprocess.PIPE,
                 timeout=30
             )
             if result.returncode == 0:
@@ -441,7 +436,6 @@ class WindscribeIPChanger:
                 self._build_adb_command(["shell", "windscribe", "connect", location]),
                 capture_output=True,
                 text=True,
-                stderr=subprocess.PIPE,
                 timeout=60
             )
             if result.returncode == 0:
@@ -590,7 +584,6 @@ class WindscribeIPChanger:
                 self._build_adb_command(["shell", "dumpsys", "vpn"]),
                 capture_output=True,
                 text=True,
-                stderr=subprocess.PIPE,
                 timeout=10
             )
             if result.returncode == 0:
@@ -612,7 +605,6 @@ class WindscribeIPChanger:
                     self._build_adb_command(["shell", "curl", "-s", "https://api.ipify.org"]),
                     capture_output=True,
                     text=True,
-                    stderr=subprocess.PIPE,
                     timeout=10
                 )
                 if result.returncode == 0 and result.stdout.strip():
@@ -626,8 +618,7 @@ class WindscribeIPChanger:
             result = subprocess.run(
                 self._build_adb_command(["shell", "ip", "addr", "show"]),
                 capture_output=True,
-                text=True,
-                stderr=subprocess.PIPE
+                text=True
             )
             if result.returncode == 0:
                 output = result.stdout.strip()
@@ -890,8 +881,7 @@ def main():
                 result = subprocess.run(
                     ["which", "adb"],
                     capture_output=True,
-                    text=True,
-                    stderr=subprocess.PIPE
+                    text=True
                 )
                 if result.returncode == 0 and result.stdout:
                     adb_path = result.stdout.strip()
